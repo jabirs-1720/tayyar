@@ -1,0 +1,11 @@
+django
+pillow
+djangorestframework
+djangorestframework-simplejwt
+django-filter
+markdown
+pymysql
+python-dotenv
+django-rosetta
+django-cors-headers
+PyJWT
