@@ -15,5 +15,7 @@ class User(AbstractUser):
 
     job_number = models.CharField(_("الرقم الوظيفي"), max_length=20, unique=True)
 
+    USERNAME_FIELD = 'job_number'
+
     def __str__(self):
         return self.username
