@@ -62,7 +62,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    'authentication.middleware.JWTAuthCookieMiddleware'
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -114,11 +113,12 @@ SIMPLE_JWT = {
     'TOKEN_BLACKLIST_ENABLED': True,
 }
 
-AUTH_USER_MODEL = 'authentication.User'
-
 AUTHENTICATION_BACKENDS = [
-  'authentication.auth_backends.EmailBackend'
+  'authentication.backends.EmailBackend',
+  'django.contrib.auth.backends.ModelBackend'
 ]
+
+AUTH_USER_MODEL = 'authentication.User'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

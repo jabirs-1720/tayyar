@@ -4,41 +4,49 @@ import {
   CardHeader,
   CardContent,
   TextField,
-  Link,
-  Snackbar,
   Stack,
   Button,
+  Snackbar,
   LinearProgress
 } from '@mui/material';
-import { useNavigate, Link as RouteLink } from 'react-router-dom';
+import { Link as RouteLink } from 'react-router-dom';
 import * as yup from 'yup';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 
 import axios from 'axios';
 
-import { useState, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux'
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import FlatLogo from '../src/assets/flat-logo.png';
 import FlatLogoDark from '../src/assets/flat-logo-dark.png';
 
 import { useTheme } from '@mui/material/styles';
+import { useDispatch } from 'react-redux';
 
 
 const schema = yup.object({
+  company: yup
+    .string()
+    .required('إسم الشركة مطلوبة')
+    .max(100, 'يجب ان لا تتجاوز 100 حرفاً'),
+  name: yup
+    .string()
+    .required('الإسم مطلوب')
+    .max(150, 'يجب ان لا تتجاوز 150 حرفاً'),
   email: yup
     .string()
-    .email('ادخل بريد الكتروني صحيح')
-    .required('البريد الإلكتروني مطلوب'),
+    .email('ادخل بريد إلكتروني صحيح')
+    .required('الرقم الوظيفي مطلوب'),
   password: yup.string().required('كلمة المرور مطلوبة'),
 });
 
-const Login = () => {
+const Signup = () => {
   // Callable variables
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { register, handleSubmit, formState: { errors } } = useForm({
+  const { register, handleSubmit, formState: { errors }, setError } = useForm({
     resolver: yupResolver(schema),
   });
 
@@ -52,7 +60,7 @@ const Login = () => {
     setLoading(true);
     try {
       const request = await axios.post(
-        'http://localhost:8000/ar/auth/token/',
+        'http://localhost:8000/ar/auth/signup',
         data
       );
 
@@ -72,8 +80,23 @@ const Login = () => {
 
       navigate('/dashboard/');
     } catch (error) {
-      console.log(error)
-      setSnackbarError(error.response.data.non_field_errors);
+      console.log(error);
+      const data = error.response?.data;
+
+      if (data?.non_field_errors) {
+        setSnackbarError(data.non_field_errors.join('\n'));
+      } else if (data) {
+        Object.entries(data).forEach(([field, messages]) => {
+          if (Array.isArray(messages)) {
+            setError(field, {
+              type: 'server',
+              message: messages.join(' ')
+            });
+          }
+        });
+      } else {
+        setSnackbarError("حدث خطأ غير متوقع. حاول مرة أخرى.");
+      }
     } finally {
       setLoading(false);
     }
@@ -85,9 +108,31 @@ const Login = () => {
         {loading && <LinearProgress />}
         <Box display="flex">
           <Stack sx={{flex: 1}}>
-            <CardHeader title={"تسجيل الدخول"}/>
+            <CardHeader title={"إنشاء حساب"}/>
             <CardContent>
               <form onSubmit={handleSubmit(onSubmit)}>
+                <TextField
+                  {...register('company')}
+                  label='اسم الشركة'
+                  id='company'
+                  variant='filled'
+                  error={!!errors.company}
+                  helperText={errors.company ? errors.company.message : ''}
+                  fullWidth
+                />
+                <br/>
+                <br/>
+                <TextField
+                  {...register('name')}
+                  label='الإسم الكريم'
+                  id='name'
+                  variant='filled'
+                  error={!!errors.name}
+                  helperText={errors.name ? errors.name.message : ''}
+                  fullWidth
+                />
+                <br/>
+                <br/>
                 <TextField
                   {...register('email')}
                   type='email'
@@ -95,7 +140,7 @@ const Login = () => {
                   id='email'
                   variant='filled'
                   error={!!errors.email}
-                  helperText={errors.email ? errors.email.message : ''}
+                  helperText={errors.email ? errors.email.message : 'استخدم بريدك الشخصي وليس بريد الشركة'}
                   fullWidth
                 />
                 <br/>
@@ -112,12 +157,9 @@ const Login = () => {
                 />
                 <br/>
                 <br/>
-                <Link to='/auth/recovery-password' variant='body2' underline='none'>نسيت كلمة المرور؟</Link>
-                <br/>
-                <br/>
                 <Box display='flex' justifyContent='space-between'>
-                  <Button variant="text" component={RouteLink} to='/auth/signup'>إنشاء حساب</Button>
-                  <Button variant="contained" type='submit'>دخول</Button>
+                  <Button variant="text" component={RouteLink} to='/auth/login'>تسجيل الدخول</Button>
+                  <Button variant="contained" type='submit'>الدخول</Button>
                 </Box>
               </form>
             </CardContent>
@@ -138,4 +180,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;

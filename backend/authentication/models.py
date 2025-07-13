@@ -13,9 +13,5 @@ class User(AbstractUser):
     # Example of adding a custom field
     # bio = models.TextField(blank=True, null=True)
 
-    job_number = models.CharField(_("الرقم الوظيفي"), max_length=20, unique=True)
-
-    USERNAME_FIELD = 'job_number'
-
     def __str__(self):
         return self.username

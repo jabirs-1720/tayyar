@@ -1,62 +1,71 @@
-from django.contrib.auth import authenticate
+from django.contrib.auth import get_user_model
 
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-class Login(APIView):
-    permission_classes = [AllowAny]
+from .serializers import SignupSerializer, TokenObtainPairSerializerByEmail
 
-    def get(self, request):
-        print(request.COOKIES)
-        if request.user.is_authenticated:
-            user = request.user
-            return Response({
-                'full_name': user.full_name,
-                'username': user.username,
-                'job_number': user.job_number,
-            }, status=200)
+User = get_user_model()
 
-        return Response({
-            'full_name': 'user.full_name',
-            'username': 'user.username',
-            'job_number': 'user.job_number',
-        }, status=200)
+class TokenObtainPairViewByEmail(TokenObtainPairView):
+    serializer_class = TokenObtainPairSerializerByEmail
 
-    def post(self, request):
-        if request.user.is_authenticated:
-            return Response({"message": "You are already logged in."}, status=400)
-        email = request.data.get("email")
-        password = request.data.get("password")
-        user = authenticate(request, email=email, password=password)
+# class Login(APIView):
+#     permission_classes = [AllowAny]
 
-        if user is None:
-            return Response({"error": "Invalid credentials"}, status=401)
+#     def get(self, request):
+#         if request.user.is_authenticated:
+#             user = request.user
+#             return Response({
+#                 'full_name': user.get_full_name(),
+#                 'username': user.username,
+#                 'email': user.email,
+#             }, status=200)
 
-        refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
+#         return Response({}, status=400)
 
-        client_type = request.headers.get("Client-Type", "web")
+#     def post(self, request):
+#         if request.user.is_authenticated:
+#             return Response({"message": "You are already logged in."}, status=400)
 
-        if client_type == "mobile":
-            return Response({
-                "access": access_token,
-                "refresh": str(refresh),
-            })
-        else:
-            response = Response({"message": "Login successful"})
-            response.set_cookie("access_token", access_token, httponly=True, secure=False, samesite="none")
-            response.set_cookie("refresh_token", str(refresh), httponly=True, secure=False, samesite="none")
-            return response
+#         email = request.data.get("email")
+#         password = request.data.get("password")
+
+#         try:
+#             user_get = User.objects.get(email=email)
+#         except User.DoesNotExist:
+#             return Response({"error": "Invalid credentials"}, status=401)
+
+#         user = authenticate(request, username=user_get.username, password=password)
+
+#         if user is None:
+#             return Response({"error": "Invalid credentials"}, status=401)
+
+#         refresh = RefreshToken.for_user(user)
+#         access_token = str(refresh.access_token)
+
+#         return Response({
+#             "access": access_token,
+#             "refresh": str(refresh),
+#         })
 
 class Signup(APIView):
     def post(self, request):
-        email = request.data.get('email')
-        password = request.data.get('password')
-        user = authenticate(request, email=email, password=password)
-        if user is not None:
-            # من الأفضل استخدام JWT أو أي نوع من توكن المصادقة
-            return Response({"message": "Login successful", "token": "jwt_or_session"}, status=status.HTTP_200_OK)
-        return Response({"message": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        serializer = SignupSerializer(data=request.data)
+
+        if serializer.is_valid():
+            user = serializer.save()
+            refresh = RefreshToken.for_user(user)
+            access = str(refresh.access_token)
+            return Response({
+                "refresh": str(refresh),
+                "access": access,
+                "full_name": user.get_full_name(),
+                "email": user.email,
+                "username": user.username,
+            }, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
